@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  php-apache:
+    build: .
+    volumes:
+      - .:/flights
+    ports:
+      - 8080:80
+
+  db:
+    image: mariadb
+    restart: always
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+    environment:
+      - MARIADB_DATABASE=flights
+      - MARIADB_USER=dbuser
+      - MARIADB_ROOT_PASSWORD=dbpass
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      - PMA_ARBITRARY=1
+
