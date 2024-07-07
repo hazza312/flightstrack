@@ -1,21 +1,49 @@
-const SCHIPHOL = [52.308601,4.76389];
-
-// need to hold reference to call .destroy() when redrawing
-var airportMarkers = [];
-
-var map = L.map('map').setView(SCHIPHOL, 2);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
-
-for (let c of Object.values(countries)) {
-  let text = `${getFlagEmoji(c.country)} ${c.code} ${c.name} (${c.dist} km)`;
-  airportMarkers.push(L.marker([c.lat, c.lon]).bindTooltip(text).addTo(map));
-}
-airportMarkers.push(L.marker([52.308601,4.76389]).bindTooltip(`${getFlagEmoji('NL')} AMS Amsterdam Schiphol Airport`).addTo(map));
-for (let c of Object.values(countries)) {
-  new L.Geodesic([[c.lat, c.lon], SCHIPHOL]).addTo(map).bindTooltip(`${c.dist} km`);
+function onDestinationSelectChange() {
+    for (let el of document.getElementById('destinationselect').options) {
+        if (!el.selected)
+            $('.' + el.value).hide();
+        else
+            $('.' + el.value).show();
+    }
 }
 
-map.fitBounds(new L.featureGroup(airportMarkers).getBounds());
+function buildSparkLine(dstElement, data, suggestedMin, suggestedMax) {
+    var ctx = document.getElementById(dstElement).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [...Array(data.length).keys()],
+            datasets: [{data: data}]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {legend: {display: false}},
+            elements: {line: {borderWidth: 2}, point: {radius: 0}},
+            tooltips: {
+                enabled: false
+            },
+            scales: {
+                x: {display: false},
+                y: {
+                    suggestedMin: Math.floor(suggestedMin),
+                    suggestedMax: Math.ceil(suggestedMax),
+                    ticks: {
+                        callback: function (label, index, labels) {
+                            return label;
+                        },
+                        maxTicksLimit: 2,
+                        autoSkipPadding: 0
+                    }
+                }
+            }
+        }
+    })
+    ;
+}
+
+$().ready(() => {
+    $('#destinationselect').on('change', onDestinationSelectChange);
+    onDestinationSelectChange();
+})
+

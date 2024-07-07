@@ -1,0 +1,118 @@
+<html>
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+            crossorigin="anonymous"></script>
+
+    <!-- charts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.1/chart.umd.js"
+            integrity="sha512-vCUbejtS+HcWYtDHRF2T5B0BKwVG/CLeuew5uT2AiX4SJ2Wff52+kfgONvtdATqkqQMC9Ye5K+Td0OTaz+P7cw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+            integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Custom -->
+    <link href="styles.css" type="text/css" rel="stylesheet">
+    <script src="flights.js"></script>
+</head>
+
+
+<body>
+<div class="container">
+    <div class="row">
+        <div class="jumbotron mt-3">
+            <h1 class="display-4">KLM Offer Tracking</h1>
+            <p class="lead">Choose some destinations from the list to explore current offers and trends</p>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <select id="destinationselect" class="form-select mb-4" multiple>
+            {% for c in trends | sort((a, b) => a.code <=> b.code) %}
+                <option value="{{ c.code }}" {% if c.defaultselected %}selected{% endif %}>
+                    {{ c.country | flagemoji }} {{ c.code }} {{ c.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+
+    <div class="row">
+        <h2 class="mt-4">Best Fares Now</h2>
+        <p>Best fares from KLM: booking today for a return trip in the short, mid and long term.</p>
+    </div>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th class="destinationColumn">Destination</th>
+            <th>Short</th>
+            <th>Mid</th>
+            <th>Long</th>
+        </tr>
+        </thead>
+        {% for i, dst in rows | batch(3) %}
+            <tr class="{{ dst[i*3].code }}">
+                <td>
+                    {{ dst[i*3].country | flagemoji }}
+                    <span title="{{ dst[i*3].name }}">{{ dst[i*3].code }}</span><br>
+                    <small>{{ dst[i*3].name | shortAirportName }}</small>
+                </td>
+                {% for w in dst %}
+                    <td style="background-color: hsl(198deg 100% {{ 100 - 45 * w.decrease }}%);">
+                        <span class="price">€{{ w.price | round }}</span><br>
+                        <span class="period">{{ w.departureDate | date("d/m") }} - {{ w.returnDate | date("d/m") }}</span><br>
+                        <span class="period">{{ date(w.returnDate).diff(date(w.departureDate)).days }} days</span>
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    <h2 class="mt-4">Trends</h2>
+    <p>Looking at the current best fare compared with best if purchased in the preceding 90 days.</p>
+    <table class="table">
+        <thead>
+        <tr>
+            <th class="destinationColumn">Destination</th>
+            <th>Trend</th>
+            <th>Mean</th>
+            <th>Now</th>
+        </tr>
+        </thead>
+        {% for v in trends %}
+            <tr class="{{ v.code }}">
+                <td>
+                    {{ v.country | flagemoji }}
+                    <span title="{{ v.name }}">{{ v.code }}</span><br>
+                    <small>{{ v.name | shortAirportName }}</small>
+                </td>
+                <td>
+                    <canvas id="spark{{ v.code }}" class="sparkline" width="150" height="60"></canvas>
+                    <script>buildSparkLine("spark{{ v.code }}", {{ v.timeSeries }}, {{ v.minPrice }}, {{ v.maxPrice }});</script>
+                </td>
+                <td>
+                    <span class="price">€{{ v.avgBest | round }}</span>
+                </td>
+                <td style="background-color: hsl(198deg 100% {{ 100 - 45 * -v.percentageDrop/100 }}%);">
+                    <span class="price">€{{ v.latestPrice | round }}</span><br>
+                    <span class="period">{% if v.percentageDrop >= 0 %}+{% endif %}{{ v.percentageDrop | round(2) }}%</span>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+</body>
+</html>

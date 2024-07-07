@@ -1,28 +1,7 @@
 <?php
 
 require_once("init.php");
-
-function get_codes($dbconn)
-{
-    return $dbconn->query("SELECT DISTINCT code FROM userinterests")->fetchAll(PDO::FETCH_COLUMN);
-}
-
-function save($db, $requestBody, $response)
-{
-    $query = <<<SQL
-        INSERT INTO apicalls (url, status, request, response)
-        VALUES (?, ?, ?, ?)
-        SQL;
-
-    $st = $db->prepare($query);
-    $st->execute([
-        $response->url,
-        $response->status_code,
-        $requestBody,
-        $response->body
-    ]);
-
-}
+require_once "queries.php";
 
 function build_request($codes, $start, $end)
 {
@@ -53,20 +32,33 @@ function send_request($requestBody)
     );
 }
 
-$codes = get_codes($db);
-$curr = new DateTimeImmutable();
+function fetch_and_store_latest_offers($db) {
+    $codes = $db->query("SELECT code FROM trackeddestinations")->fetchAll(PDO::FETCH_COLUMN);
+    $curr = new DateTimeImmutable();
 
-for ($i = 0; $i < 3; $i++) {
-    $d1 = $curr->add(new DateInterval('P' . ($i * 4) . 'M'))->format('Y-m-d') . 'T00:00:00';
-    $d2 = $curr->add(new DateInterval('P' . (($i + 1) * 4) . 'M'))->format('Y-m-d') . 'T00:00:00';
+    for ($i = 0; $i < 3; $i++) {
+        $d1 = $curr->add(new DateInterval('P' . ($i * 4) . 'M'))->format('Y-m-dT00:00:00');
+        $d2 = $curr->add(new DateInterval('P' . (($i + 1) * 4) . 'M'))->format('Y-m-dT00:00:00');
 
-    $requestBody = build_request($codes, $d1, $d2);
-    $response = send_request($requestBody);
-    save($db, $requestBody, $response);
+        $requestBody = build_request($codes, $d1, $d2);
+        $response = send_request($requestBody);
+        saveApiCallResult($db, $requestBody, $response);
 
-    // rate limit
-    sleep(1);
+        // rate limit
+        sleep(1);
+    }
 }
 
+function generate_report($db) {
+
+}
+
+
+function main($db) {
+    fetch_and_store_latest_offers($db);
+    generate_report($db);
+}
+
+main($db);
 
 ?>

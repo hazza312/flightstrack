@@ -1,0 +1,26 @@
+.price {
+    font-size: larger;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.period {
+    font-size: small;
+    padding-top: 10px;
+}
+
+td {
+    vertical-align: middle;
+}
+
+#destinationselect {
+    height: 200px;
+}
+
+.sparkline {
+    display: inline;
+}
+
+.destinationColumn {
+    width: 25%;
+}
