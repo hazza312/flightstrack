@@ -1,7 +1,14 @@
 <?php
 
-require_once("init.php");
 require_once "queries.php";
+require_once "util.php";
+
+require_once(__DIR__ . '../../vendor/autoload.php');
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__. '/../');
+$dotenv->load();
+
+$db = new PDO("mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']};charset=utf8", $_ENV['DB_USER'], $_ENV['DB_PASSWORD']);
+
 
 function build_request($codes, $start, $end)
 {
@@ -37,8 +44,8 @@ function fetch_and_store_latest_offers($db) {
     $curr = new DateTimeImmutable();
 
     for ($i = 0; $i < 3; $i++) {
-        $d1 = $curr->add(new DateInterval('P' . ($i * 4) . 'M'))->format('Y-m-dT00:00:00');
-        $d2 = $curr->add(new DateInterval('P' . (($i + 1) * 4) . 'M'))->format('Y-m-dT00:00:00');
+        $d1 = $curr->add(new DateInterval('P' . ($i * 4) . 'M'))->format('Y-m-d') . 'T00:00:00';
+        $d2 = $curr->add(new DateInterval('P' . (($i + 1) * 4) . 'M'))->format('Y-m-d') . 'T00:00:00';
 
         $requestBody = build_request($codes, $d1, $d2);
         $response = send_request($requestBody);
@@ -49,16 +56,31 @@ function fetch_and_store_latest_offers($db) {
     }
 }
 
-function generate_report($db) {
+function generate_report($db, $output) {
+    $loader = new \Twig\Loader\FilesystemLoader('templates');
+    $twig = new \Twig\Environment($loader);
+    $twig->addFilter(new Twig\TwigFilter('flagemoji', 'flagEmoji'));
+    $twig->addFilter(new Twig\TwigFilter('shortAirportName', 'shortAirportName'));
 
+    $content = $twig->render('report.html.twig', [
+        'rows' => get_current_offers($db),
+        'trends' => get_offer_trends($db)
+    ]);
+
+    file_put_contents($output, $content);
 }
 
 
 function main($db) {
-    fetch_and_store_latest_offers($db);
-    generate_report($db);
+    $ret = getopt("", ["output:", "nofetch"]);
+    $fetch = !isset($ret['nofetch']);
+    $output = $ret['output'] ?? "public/report.html";
+
+    if ($fetch) {
+        fetch_and_store_latest_offers($db);
+    }
+
+    generate_report($db, $output);
 }
 
 main($db);
-
-?>

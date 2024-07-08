@@ -2,8 +2,7 @@
 
 function saveApiCallResult($db, $requestBody, $response): void
 {
-    $query = "INSERT INTO apicalls (url, status, request, response) VALUES (?, ?, ?, ?)";
-    $st = $db->prepare($query);
+    $st = $db->prepare("INSERT INTO apicalls (url, status, request, response) VALUES (?, ?, ?, ?)");
     $st->execute([$response->url, $response->status_code, $requestBody, $response->body]);
 }
 
@@ -25,6 +24,7 @@ function get_current_offers($db): array
         departureDate,
         returnDate,
         price,
+        -- the proportion decrease from the highest price for a window on a given request date 
         ((MAX(price) OVER (PARTITION BY code)) - price) / (MAX(price) OVER (PARTITION BY code)) AS decrease
     FROM lowestfaredestination
     JOIN trackeddestinations USING (code)

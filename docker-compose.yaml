@@ -1,11 +1,9 @@
 version: "3.8"
 services:
-  php-apache:
+  report:
     build: .
     volumes:
       - .:/flights
-    ports:
-      - 8080:80
 
   db:
     image: mariadb
