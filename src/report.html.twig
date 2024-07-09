@@ -33,6 +33,7 @@
         <div class="jumbotron mt-3">
             <h1 class="display-4">KLM Offer Tracking</h1>
             <p class="lead">Choose some destinations from the list to explore current offers and trends</p>
+            <p>Last updated: <code>{{ "now" | date("D M j Y G:i:s T") }}</code></p>
         </div>
 
     </div>
@@ -41,7 +42,7 @@
         <select id="destinationselect" class="form-select mb-4" multiple>
             {% for c in trends | sort((a, b) => a.code <=> b.code) %}
                 <option value="{{ c.code }}" {% if c.defaultselected %}selected{% endif %}>
-                    {{ c.country | flagemoji }} {{ c.code }} {{ c.name }}
+                    {{ c.country | flagemoji }} {{ c.code }} {{ c.name | shortAirportName }}
                 </option>
             {% endfor %}
         </select>

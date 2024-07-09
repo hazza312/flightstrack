@@ -57,7 +57,7 @@ function fetch_and_store_latest_offers($db) {
 }
 
 function generate_report($db, $output) {
-    $loader = new \Twig\Loader\FilesystemLoader('.');
+    $loader = new \Twig\Loader\FilesystemLoader(__DIR__);
     $twig = new \Twig\Environment($loader);
     $twig->addFilter(new Twig\TwigFilter('flagemoji', 'flagEmoji'));
     $twig->addFilter(new Twig\TwigFilter('shortAirportName', 'shortAirportName'));
