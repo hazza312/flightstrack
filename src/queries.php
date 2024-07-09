@@ -40,48 +40,49 @@ function get_offer_trends($db)
 {
     $query = <<<SQL
     WITH best_daily AS (
+        SELECT
+            requesteddate,
+            lf.code,
+            defaultselected,
+            MIN(price) AS price
+        FROM lowestfaredestination lf
+        JOIN trackeddestinations USING (code)
+        WHERE showinreport
+        AND requesteddate >= CURRENT_DATE - INTERVAL 90 DAY
+        GROUP BY 1, 2, 3  
+    )
+
+    , by_destination AS (
         SELECT 
-        code,
-        requesteddate,
-        MIN(price) AS price,
-        FIRST_VALUE(MIN(price)) OVER (PARTITION BY code ORDER BY requested DESC) AS latestPrice,
-        FIRST_VALUE(requesteddate) OVER (PARTITION BY code ORDER BY requested DESC) AS latestDate,
-        defaultselected
-        
-        FROM lowestfaredestination
-        JOIN trackeddestinations USING (code) 
-        WHERE requesteddate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL 90 DAY) AND CURRENT_DATE
-        AND showinreport
-        GROUP BY 1, 2
-        ORDER BY 1, 2  
-    ), grouped AS (
-        SELECT 
-        code,
-        defaultselected,
-        AVG(CASE WHEN requesteddate <> latestDAte THEN price END) AS avgBest,
-        100.0 * ( 
-            latestPrice - AVG(CASE WHEN requesteddate <> latestDAte THEN price END)) 
-            / AVG(CASE WHEN requesteddate <> latestDAte THEN price END) AS percentageDrop,
-        JSON_ARRAYAGG(ROUND(price) ORDER BY requesteddate) AS timeSeries,
-        MIN(price) AS minPrice,
-        MAX(price) AS maxPrice,
-        latestPrice
+            code,
+            defaultselected,
+            JSON_ARRAYAGG(price ORDER BY requesteddate) AS timeseries,
+            AVG(CASE WHEN requesteddate <> CURRENT_DATE THEN price END) AS precedingAverage,
+            MIN(CASE WHEN requesteddate = CURRENT_DATE THEN price END) AS currentPrice,
+            MIN(price) AS minPrice,
+            MAX(price) AS maxPrice
         FROM best_daily
         GROUP BY 1, 2
     )
-    
+
     SELECT 
-        *,
-        CASE WHEN percentageDrop < 0 THEN 
-            percentageDrop / MIN(percentageDrop) OVER ()
-        ELSE 
-            0
-        END AS ratioBestDrop,
-        airports.country,
-        airports.name
-    FROM grouped
-    JOIN airports USING (code)
-    ORDER BY percentageDrop ASC
+        by_destination.*,
+        name,
+        country,
+        100.0 * (currentPrice - precedingAverage) / precedingAverage AS percentageChangeToAvg,
+
+        -- calculate percentageChangeToAvg as a ratio to the "best" percentage drop from avg over all destinations
+        -- for colour visual indication, a means to compare in UI
+        GREATEST(
+            0,
+            ((currentPrice - precedingAverage) / precedingAverage) 
+                / 
+            MIN((currentPrice - precedingAverage) / precedingAverage) OVER ()
+        ) AS ratioBestDrop
+
+        FROM by_destination
+        JOIN airports USING (code)
+        ORDER BY percentageChangeToAvg
     SQL;
 
     return fetch($db, $query, []);

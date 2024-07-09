@@ -24,6 +24,8 @@
     <!-- Custom -->
     <link href="styles.css" type="text/css" rel="stylesheet">
     <script src="flights.js"></script>
+
+    <title>Flight Price Tracker</title>
 </head>
 
 
@@ -101,14 +103,14 @@
                 </td>
                 <td>
                     <canvas id="spark{{ v.code }}" class="sparkline" width="150" height="60"></canvas>
-                    <script>buildSparkLine("spark{{ v.code }}", {{ v.timeSeries }}, {{ v.minPrice }}, {{ v.maxPrice }});</script>
+                    <script>buildSparkLine("spark{{ v.code }}", {{ v.timeseries }}, {{ v.minPrice }}, {{ v.maxPrice }});</script>
                 </td>
                 <td>
-                    <span class="price">€{{ v.avgBest | round }}</span>
+                    <span class="price">€{{ v.precedingAverage | round }}</span>
                 </td>
-                <td style="background-color: hsl(198deg 100% {{ 100 - 45 * -v.percentageDrop/100 }}%);">
-                    <span class="price">€{{ v.latestPrice | round }}</span><br>
-                    <span class="period">{% if v.percentageDrop >= 0 %}+{% endif %}{{ v.percentageDrop | round(2) }}%</span>
+                <td style="background-color: hsl(198deg 100% {{ 100 - 45 * -v.percentageChangeToAvg/100 }}%);">
+                    <span class="price">€{{ v.currentPrice | round }}</span><br>
+                    <span class="period">{% if v.percentageChangeToAvg >= 0 %}+{% endif %}{{ v.percentageChangeToAvg | round(2) }}%</span>
                 </td>
             </tr>
         {% endfor %}
